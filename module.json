@@ -1,4 +1,4 @@
-﻿{
+{
   "id": "selected-token-name",
   "title": "Selected Token Name",
   "description": "플레이어들에게 액터의 이름을 알리지 않기 위해, 토큰을 참조하기는 개뿔이 아이고 나 죽네 그래서 만들엇습니다. 마스터의 삶의 질을 쥐꼬리만큼 올려줄 {{selectedTokenName}} 플레이스 홀더로 토큰의 이름을 가져올 수 있는 모듈!!!!!!!",
