@@ -1,62 +1,93 @@
 ﻿const MODULE_ID = "selected-token-name";
 const PLACEHOLDER = "{{selectedTokenName}}";
 
-function getSheetTokenName(app) {
-    const actor = app.item?.parent ?? app.actor;
-
+function getActorTokenName(actor) {
     if (!actor) return null;
 
     if (actor.isToken && actor.token) {
-        return actor.token.name ?? null;
+        return actor.token.name ?? actor.name;
     }
 
     const tokens = actor.getActiveTokens();
 
-    if (tokens.length !== 1) {
-        return null;
+    if (tokens.length === 1) {
+        return tokens[0].document?.name
+            ?? tokens[0].name
+            ?? actor.name;
     }
 
-    return tokens[0].document?.name ?? null;
+    return actor.name;
 }
 
-function escapeHtml(value) {
-    return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+function getItemSheetTokenName(app) {
+    const actor = app.item?.parent ?? app.actor;
+    return getActorTokenName(actor);
 }
 
-function replaceDescriptionPlaceholder(app, html) {
-    const tokenName = getSheetTokenName(app);
+function getChatTokenName(message) {
+    const speaker = message.speaker;
 
-    if (!tokenName) return;
+    if (speaker?.token) {
+        const sceneId = speaker.scene ?? canvas.scene?.id;
+        const scene = game.scenes.get(sceneId);
+        const token = scene?.tokens.get(speaker.token);
 
-    const root = html?.[0] ?? html;
+        if (token) return token.name;
+    }
 
-    if (!root?.querySelectorAll) return;
+    const actor = speaker?.actor
+        ? game.actors.get(speaker.actor)
+        : null;
 
-    const descriptionElements =
-        root.querySelectorAll(".editor-content");
+    return actor?.name ?? null;
+}
 
-    if (descriptionElements.length === 0) return;
+function replacePlaceholderInElement(element, tokenName) {
+    if (!element || !tokenName) return;
 
-    const safeName = escapeHtml(tokenName);
+    const walker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT
+    );
 
-    for (const element of descriptionElements) {
-        if (!element.innerHTML.includes(PLACEHOLDER)) continue;
+    const textNodes = [];
+    let node;
 
-        element.innerHTML = element.innerHTML
+    while ((node = walker.nextNode())) {
+        if (node.nodeValue.includes(PLACEHOLDER)) {
+            textNodes.push(node);
+        }
+    }
+
+    for (const textNode of textNodes) {
+        textNode.nodeValue = textNode.nodeValue
             .split(PLACEHOLDER)
-            .join(safeName);
+            .join(tokenName);
     }
 }
 
 Hooks.on("renderItemSheet", (app, html) => {
-    replaceDescriptionPlaceholder(app, html);
+    const tokenName = getItemSheetTokenName(app);
+    if (!tokenName) return;
+
+    const root = html?.[0] ?? html;
+    if (!root) return;
+
+    for (const element of root.querySelectorAll(".editor-content")) {
+        replacePlaceholderInElement(element, tokenName);
+    }
+});
+
+Hooks.on("renderChatMessage", (message, html) => {
+    const tokenName = getChatTokenName(message);
+    if (!tokenName) return;
+
+    const root = html?.[0] ?? html;
+    if (!root) return;
+
+    replacePlaceholderInElement(root, tokenName);
 });
 
 Hooks.once("ready", () => {
-    console.log(`[${MODULE_ID}] Loaded.`);
+    console.log(`[${MODULE_ID}] 장전.`);
 });
