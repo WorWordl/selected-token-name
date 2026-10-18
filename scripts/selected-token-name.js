@@ -141,7 +141,58 @@ Hooks.on("renderActorSheet", (app, html) => {
     });
 });
 
+function replaceHudTooltip(root) {
+    if (!root) return;
+
+    const token = canvas.tokens.controlled[0];
+    const tokenName = token?.document?.name
+        ?? token?.actor?.name;
+
+    if (!tokenName) return;
+
+    const selectors = [
+        "#tooltip",
+        ".tooltip",
+        ".dnd5e-tooltip",
+        "[role='tooltip']"
+    ];
+
+    const elements = [];
+
+    if (root.matches?.(selectors.join(","))) {
+        elements.push(root);
+    }
+
+    elements.push(...(root.querySelectorAll?.(
+        selectors.join(",")
+    ) ?? []));
+
+    for (const element of elements) {
+        replacePlaceholderInElement(element, tokenName);
+    }
+}
 
 Hooks.once("ready", () => {
-    console.log(`[${MODULE_ID}] 장전.`);
+    const observer = new MutationObserver(mutations => {
+        for (const mutation of mutations) {
+            if (mutation.type === "childList") {
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        replaceHudTooltip(node);
+                    }
+                }
+            } else if (
+                mutation.type === "characterData"
+                && mutation.target.nodeValue.includes(PLACEHOLDER)
+            ) {
+                replaceHudTooltip(mutation.target.parentElement);
+            }
+        }
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true
+    });
 });
