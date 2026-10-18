@@ -88,6 +88,60 @@ Hooks.on("renderChatMessage", (message, html) => {
     replacePlaceholderInElement(root, tokenName);
 });
 
+Hooks.on("renderActorSheet", (app, html) => {
+    const root = html?.[0] ?? html;
+    const tokenName = getActorTokenName(app.actor);
+
+    if (!root || !tokenName) return;
+
+    function processItemDescriptions(container) {
+        if (!container) return;
+
+        if (
+            container.matches?.(".item-summary, .item-description")
+        ) {
+            replacePlaceholderInElement(container, tokenName);
+        }
+
+        container.querySelectorAll?.(
+            ".item-summary, .item-description"
+        ).forEach(element => {
+            replacePlaceholderInElement(element, tokenName);
+        });
+    }
+
+    processItemDescriptions(root);
+
+    const observer = new MutationObserver(mutations => {
+        for (const mutation of mutations) {
+            for (const node of mutation.addedNodes) {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    processItemDescriptions(node);
+                } else if (
+                    node.nodeType === Node.TEXT_NODE &&
+                    node.nodeValue.includes(PLACEHOLDER)
+                ) {
+                    const parent = node.parentElement;
+
+                    if (parent?.closest(
+                        ".item-summary, .item-description"
+                    )) {
+                        node.nodeValue = node.nodeValue
+                            .split(PLACEHOLDER)
+                            .join(tokenName);
+                    }
+                }
+            }
+        }
+    });
+
+    observer.observe(root, {
+        childList: true,
+        subtree: true
+    });
+});
+
+
 Hooks.once("ready", () => {
     console.log(`[${MODULE_ID}] 장전.`);
 });
