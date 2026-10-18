@@ -19,6 +19,12 @@ function getSheetTokenName(app) {
         ?? null;
 }
 
+function replaceTokenPlaceholder(html, tokenName) {
+    if (!html || !tokenName) return html;
+
+    return html.split(PLACEHOLDER).join(tokenName);
+}
+
 Hooks.once("ready", () => {
-    console.log(`[${MODULE_ID}] Loaded.`);
+    console.log(`[${MODULE_ID}] 로디듣.`);
 });
